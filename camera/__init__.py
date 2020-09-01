@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import cv2
-import time
 
 ESC = 27
 SPACE = 32
@@ -32,10 +31,10 @@ class Camera:
             img_name = self.save_image(frame)
             try:
                 response = self.sender.send_request(img_name)
-                self.image_show(frame, response['boxes'])
-                # time.sleep(0.1)
+                boxes = transform_boxes(response)
+                self.image_show(frame, boxes)
             except Exception as e:
-                self.image_show(frame)
+                self.image_show(frame, [])
                 print("Error to send image: ", e)
 
             self.img_counter += 1
@@ -46,24 +45,40 @@ class Camera:
         cv2.destroyAllWindows()
 
     @staticmethod
-    def image_show(image, boxes=None):
-        if boxes is None:
-            boxes = []
-
+    def image_show(image, boxes):
         square = image.copy()
-        if len(boxes) != 0:
-            pts = np.array(boxes, np.int32)
-            pts = pts.reshape((-1, 1, 2))
-            cv2.polylines(square, [pts], True, (0, 255, 255), 2)
-
+        cv2.polylines(square, boxes, True, (0, 255, 255), 2)
         image = cv2.vconcat([image, square])
         cv2.imshow("Frame", image)
 
-        return image
-
     def save_image(self, image):
-        img_name = "opencv_frame_{}.png".format(self.img_counter)
+        img_name = "images/opencv_frame_{}.png".format(self.img_counter)
         cv2.imwrite(img_name, image)
         # print("{} written".format(img_name))
 
         return img_name
+
+
+def transform_boxes(response):
+    boxes = []
+
+    if len(response['result']) == 0:
+        return boxes
+
+    for i in response['result'][0]['boxes']:
+        box = i['box']
+        h, w, x, y = box['h'], box['w'], box['x'], box['y']
+        """
+        x, y ------ w, y
+        |              |
+        |              |
+        |              |
+        x, h ------ w, h        
+        """
+        arr = [[x, y], [w, y], [w, h], [x, h]]
+
+        pts = np.array(arr, np.int32)
+        pts = pts.reshape((-1, 1, 2))
+        boxes.append(pts)
+
+    return boxes
