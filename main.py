@@ -1,13 +1,17 @@
-import sender
-import camera
+import sender as snd
+import camera as cmr
+import domain as dmn
+import database as dtb
 
 
 def main():
-    sender_obj = sender.Sender("http://127.0.0.1")
-    camera_obj = camera.Camera(sender_obj)
+    sender = snd.Sender("http://127.0.0.1")
+    database = dtb.Database()
+    domain = dmn.Domain(sender, database)
+    camera = cmr.Camera(domain)
 
-    camera_obj.start()
-    camera_obj.close_camera()
+    camera.start()
+    camera.close_camera()
 
 
 if __name__ == '__main__':
